@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import * as asar from "@electron/asar";
 import { fileURLToPath } from "node:url";
+import { installAppIcon } from "./app-icon.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const original = process.argv[2] || "/Applications/Notion.app";
 const finalDest = path.resolve(
@@ -109,6 +110,7 @@ execFileSync("/usr/bin/plutil", [
   plist,
 ]);
 const entitlements = path.join(scratch, "entitlements.plist");
+installAppIcon(dest, scratch);
 fs.writeFileSync(
   entitlements,
   '<?xml version="1.0"?><plist version="1.0"><dict><key>com.apple.security.cs.allow-jit</key><true/><key>com.apple.security.cs.disable-library-validation</key><true/><key>com.apple.security.device.audio-input</key><true/><key>com.apple.security.device.camera</key><true/></dict></plist>',
