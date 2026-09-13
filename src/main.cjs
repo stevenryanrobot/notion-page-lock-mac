@@ -13,6 +13,8 @@ const {
 } = require("electron");
 const path = require("node:path");
 const { Vault, pageId } = require("./core.cjs");
+const { installLoginPopups } = require("./login-popups.cjs");
+installLoginPopups(app);
 // Give the local desktop copy its own cookies, caches and settings.
 app.setName("Notion Page Lock");
 app.setPath("userData", path.join(app.getPath("appData"), "Notion Page Lock"));
@@ -86,7 +88,7 @@ function openPanel(mode, wc, unlockIds = []) {
     resizable: false,
     minimizable: false,
     maximizable: false,
-    title: "Notion 隐私锁",
+    title: "Notion+",
     backgroundColor: "#20201f",
     show: false,
     webPreferences: {
@@ -182,7 +184,7 @@ Menu.setApplicationMenu = (menu) => {
             label: "关于本机隐私锁",
             click: () =>
               dialog.showMessageBox({
-                message: "Notion 隐私锁 · 0.1.0",
+                message: "Notion+ · 0.1.0",
                 detail:
                   "仅保护这个桌面副本中的指定页面视图。离开 App、锁屏或解锁 5 分钟后重新上锁。子页面须分别添加。\n\n这是本地查看遮挡，不加密 Notion 云端原文。搜索摘要、同步块、AI、导出、浏览器及其他设备仍可能显示内容。副本需要单独登录；通过邮件验证码登录最可靠。",
               }),

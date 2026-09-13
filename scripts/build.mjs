@@ -8,7 +8,7 @@ import { installAppIcon } from "./app-icon.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const original = process.argv[2] || "/Applications/Notion.app";
 const finalDest = path.resolve(
-  process.argv[3] || path.join(root, "dist/Notion 隐私锁.app"),
+  process.argv[3] || path.join(root, "dist/Notion+.app"),
 );
 const scratch = path.resolve(
   process.env.NPL_BUILD_WORK_DIR || path.join(root, "work/build"),
@@ -97,7 +97,7 @@ execFileSync("/usr/bin/plutil", [
   "-replace",
   "CFBundleDisplayName",
   "-string",
-  "Notion 隐私锁",
+  "Notion+",
   plist,
 ]);
 execFileSync("/usr/bin/plutil", ["-remove", "CFBundleURLTypes", plist]);

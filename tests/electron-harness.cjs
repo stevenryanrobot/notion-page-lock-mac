@@ -93,8 +93,54 @@ app.whenReady().then(async () => {
     win.webContents.on("console-message", (e) => {
       if (e.level === "error") console.error("RENDERER", e.message);
     });
+    // Reproduce the vendor's default denial before testing the login-only exception.
+    win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+    await win.loadURL("https://app.notion.com/login");
+    for (const route of [
+      "googlepopupredirect",
+      "chatgptloginredirect",
+      "applepopupredirect",
+    ]) {
+      const opened = await win.webContents.executeJavaScript(
+        `!!window.open('https://app.notion.com/${route}', 'auth-${route}')`,
+      );
+      assert(opened, route + " blocked");
+      await pause(250);
+      const child = BrowserWindow.getAllWindows().find((w) => w !== win);
+      assert(child);
+      assert.equal(child.webContents.session, win.webContents.session);
+      const safety = await child.webContents.executeJavaScript(
+        `({node:typeof process, bridge:typeof lockPanel, opener:!!window.opener})`,
+      );
+      assert.deepEqual(safety, {
+        node: "undefined",
+        bridge: "undefined",
+        opener: true,
+      });
+      await win.webContents.executeJavaScript(
+        `window.authReply=null;window.addEventListener('message',e=>{if(e.origin===location.origin)window.authReply=e.data},{once:true})`,
+      );
+      await child.webContents.executeJavaScript(
+        `window.opener.postMessage('synthetic-auth-result','https://app.notion.com')`,
+      );
+      await pause(50);
+      assert.equal(
+        await win.webContents.executeJavaScript("window.authReply"),
+        "synthetic-auth-result",
+      );
+      child.close();
+      await pause(100);
+      record(route + " opens safely and can return a result to its opener");
+    }
     progress("Loading initial fixture");
     await win.loadURL("https://app.notion.com/" + A);
+    assert.equal(
+      await win.webContents.executeJavaScript(
+        `window.open('https://app.notion.com/googlepopupredirect')===null`,
+      ),
+      true,
+    );
+    record("Ordinary pages retain the original popup policy");
     progress("Initial fixture loaded");
     await pause(200);
     assert.equal((await view()).visibility, "visible");
