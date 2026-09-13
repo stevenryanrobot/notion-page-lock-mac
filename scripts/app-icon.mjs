@@ -37,12 +37,23 @@ export function installAppIcon(bundle, scratch) {
       path.join(resources, "notion-page-lock-orange.icns"),
     ]);
     fs.copyFileSync(asset, path.join(resources, "icon-production.png"));
+    const plist = path.join(bundle, "Contents/Info.plist");
+    const info = JSON.parse(
+      execFileSync("/usr/bin/plutil", ["-convert", "json", "-o", "-", plist], {
+        encoding: "utf8",
+      }),
+    );
+    // The vendor asset-catalog name takes precedence over CFBundleIconFile.
+    // Remove that reference so macOS actually resolves our custom ICNS.
+    if (Object.hasOwn(info, "CFBundleIconName")) {
+      execFileSync("/usr/bin/plutil", ["-remove", "CFBundleIconName", plist]);
+    }
     execFileSync("/usr/bin/plutil", [
       "-replace",
       "CFBundleIconFile",
       "-string",
       "notion-page-lock-orange.icns",
-      path.join(bundle, "Contents/Info.plist"),
+      plist,
     ]);
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
