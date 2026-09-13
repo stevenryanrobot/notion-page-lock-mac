@@ -34,7 +34,7 @@ export function installAppIcon(bundle, scratch) {
       "icns",
       iconset,
       "-o",
-      path.join(resources, "notion-page-lock-orange.icns"),
+      path.join(resources, "notion-page-lock-orange-rounded.icns"),
     ]);
     fs.copyFileSync(asset, path.join(resources, "icon-production.png"));
     const plist = path.join(bundle, "Contents/Info.plist");
@@ -52,7 +52,7 @@ export function installAppIcon(bundle, scratch) {
       "-replace",
       "CFBundleIconFile",
       "-string",
-      "notion-page-lock-orange.icns",
+      "notion-page-lock-orange-rounded.icns",
       plist,
     ]);
   } finally {
