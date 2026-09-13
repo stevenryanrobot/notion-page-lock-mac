@@ -38,6 +38,16 @@ app.on("web-contents-created", (_, wc) => {
   );
 });
 const { vault, lockAll } = require("./page-lock/main.cjs");
+const { isAllowedLoginNavigation } = require("./page-lock/login-popups.cjs");
+// Equivalent provider guard to the patched vendor listeners.
+app.on("web-contents-created", (_, wc) => {
+  const guard = (event, url) => {
+    if (!url.startsWith("https://app.notion.com/") &&
+        !isAllowedLoginNavigation(wc, url)) event.preventDefault();
+  };
+  wc.on("will-navigate", guard);
+  wc.on("will-redirect", guard);
+});
 const A = "12345678123412341234123456789abc",
   B = "abcdefabcdefabcdefabcdefabcdefab";
 const password = "test-only-password-123";
@@ -69,7 +79,7 @@ app.whenReady().then(async () => {
       "https",
       () =>
         new Response(
-          `<!doctype html><html><head><title>Fixture page</title></head><body><h1 id="secret">PRIVATE TEST CONTENT</h1><p>Only a synthetic test fixture.</p><a id="protected" href="/${A}">Protected</a><script>window.framesSeen=[];function sample(){framesSeen.push({path:location.pathname,visible:getComputedStyle(document.body).visibility});if(framesSeen.length<300)requestAnimationFrame(sample)}requestAnimationFrame(sample);</script></body></html>`,
+          `<!doctype html><html><head><title>Fixture page</title></head><body><h1 id="secret">PRIVATE TEST CONTENT</h1><p>Only a synthetic test fixture.</p><div id="editor" contenteditable="true">Original text</div><a id="protected" href="/${A}">Protected</a><script>window.framesSeen=[];function sample(){framesSeen.push({path:location.pathname,visible:getComputedStyle(document.body).visibility});if(framesSeen.length<300)requestAnimationFrame(sample)}requestAnimationFrame(sample);</script></body></html>`,
           { headers: { "Content-Type": "text/html" } },
         ),
     );
@@ -131,6 +141,39 @@ app.whenReady().then(async () => {
       child.close();
       await pause(100);
       record(route + " opens safely and can return a result to its opener");
+    }
+    for (const [route, provider, callback] of [
+      ["applepopupredirect", "https://appleid.apple.com/auth/authorize", "appleauthcallback"],
+      ["chatgptloginredirect", "https://auth.openai.com/oauth/authorize", "chatgptauthcallback"],
+    ]) {
+      await win.webContents.executeJavaScript(
+        `location.href='https://app.notion.com/${route}?callbackType=redirect'`,
+      );
+      await pause(250);
+      const child = BrowserWindow.getAllWindows().find(w => w !== win);
+      assert(child, "same-tab auth redirect should open a separate window");
+      assert.equal(win.webContents.getURL(), "https://app.notion.com/login");
+      assert.equal(child.webContents.session, win.webContents.session);
+      assert(!isAllowedLoginNavigation(win.webContents, provider));
+      assert(isAllowedLoginNavigation(child.webContents, provider));
+      for (const bad of ["http://auth.openai.com/", "https://auth.openai.com.evil.test/", "https://evil.test/", "file:///tmp/test"])
+        assert(!isAllowedLoginNavigation(child.webContents, bad));
+      await child.webContents.executeJavaScript(`location.href=${JSON.stringify(provider)}`);
+      await pause(250);
+      assert.equal(child.webContents.getURL(), provider);
+      assert.deepEqual(await child.webContents.executeJavaScript(
+        `({node:typeof process, bridge:typeof lockPanel})`),
+        {node: "undefined", bridge: "undefined"});
+      await child.webContents.executeJavaScript("location.href='https://evil.test/'");
+      await pause(100);
+      assert.equal(child.webContents.getURL(), provider);
+      await child.webContents.executeJavaScript(
+        `location.href='https://app.notion.com/${callback}?state=synthetic'`);
+      await pause(350);
+      assert(child.isDestroyed());
+      assert.equal(win.webContents.getURL(), `https://app.notion.com/${callback}?state=synthetic`);
+      record(route + " isolates redirect, blocks unrelated hosts, and hands Notion callback back to main tab");
+      await win.loadURL("https://app.notion.com/login");
     }
     progress("Loading initial fixture");
     await win.loadURL("https://app.notion.com/" + A);
@@ -212,12 +255,19 @@ app.whenReady().then(async () => {
     await pause(100);
     assert.equal((await view()).visibility, "visible");
     record("Ordinary page stays readable");
+    await win.webContents.executeJavaScript("document.getElementById('editor').focus()");
+    await win.webContents.insertText("Edited fixture text");
+    assert((await win.webContents.executeJavaScript("document.getElementById('editor').textContent")).includes("Edited fixture text"));
+    assert(await win.webContents.executeJavaScript("document.dispatchEvent(new Event('copy',{cancelable:true}))"));
+    record("Unprotected content remains editable and ordinary copy events are not intercepted");
     const sync = await win.webContents.executeJavaScript(
       `history.pushState({},'', '/${A}');({blocked:document.documentElement.hasAttribute('data-npl-blocked'),visibility:getComputedStyle(document.body).visibility})`,
     );
     assert(sync.blocked);
     assert.equal(sync.visibility, "hidden");
     record("SPA history change hides protected page synchronously");
+    assert.equal(await win.webContents.executeJavaScript("document.dispatchEvent(new Event('copy',{cancelable:true}))"), false);
+    record("Locked view cancels copy events");
     await win.webContents.executeJavaScript(
       `history.replaceState({},'', '/${B}')`,
     );

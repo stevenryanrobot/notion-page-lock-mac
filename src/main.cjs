@@ -13,7 +13,7 @@ const {
 } = require("electron");
 const path = require("node:path");
 const { Vault, pageId } = require("./core.cjs");
-const { installLoginPopups } = require("./login-popups.cjs");
+const { installLoginPopups, isWebLoginURL } = require("./login-popups.cjs");
 installLoginPopups(app);
 // Give the local desktop copy its own cookies, caches and settings.
 app.setName("Notion Page Lock");
@@ -151,6 +151,7 @@ function protect() {
 }
 const originalSetMenu = Menu.setApplicationMenu.bind(Menu);
 Menu.setApplicationMenu = (menu) => {
+  if (menu?.items[0]?.label === "Notion") menu.items[0].label = "Notion+";
   if (menu && !menu.items.some((i) => i.id === "npl-menu"))
     menu.append(
       new MenuItem({
@@ -202,9 +203,7 @@ function track(wc, frameURL) {
       u.protocol === "https:" && /(^|\.)notion\.(so|com)$/.test(u.hostname);
   } catch {}
   if (!allowed) return false;
-  wc._nplLoginMode = /^\/login(?:\/|$)/.test(
-    new URL(frameURL || wc.getURL()).pathname,
-  );
+  wc._nplLoginMode = isWebLoginURL(frameURL || wc.getURL());
   if (tracked.has(wc)) return true;
   tracked.add(wc);
   wc.on("focus", () => {
@@ -221,7 +220,7 @@ function track(wc, frameURL) {
     send(wc, "npl:route");
     if (isMain) {
       try {
-        const nextLogin = /^\/login(?:\/|$)/.test(new URL(url).pathname);
+        const nextLogin = isWebLoginURL(url);
         if (nextLogin !== wc._nplLoginMode) {
           wc._nplLoginMode = nextLogin;
           wc.reload();

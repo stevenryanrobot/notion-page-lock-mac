@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import * as asar from "@electron/asar";
 import { fileURLToPath } from "node:url";
 import { installAppIcon } from "./app-icon.mjs";
+import login from "../src/login-popups.cjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const original = process.argv[2] || "/Applications/Notion.app";
 const finalDest = path.resolve(
@@ -50,7 +51,7 @@ if (!originalPreload.includes(desktopFlag))
   throw Error("Unknown login bridge layout.");
 const inlineLoginPreload = originalPreload.replace(
   desktopFlag,
-  'a.contextBridge.exposeInMainWorld("__isElectron",!/^\\/login(?:\\/|$)/.test(location.pathname))',
+  `a.contextBridge.exposeInMainWorld("__isElectron",!${login.webLoginPattern}.test(location.pathname))`,
 );
 fs.writeFileSync(
   preload,
@@ -73,6 +74,17 @@ const nativeBridge =
 if (!code.includes(nativeBridge))
   throw Error("Unknown native messaging layout; refusing to build.");
 code = code.replace(nativeBridge, nativeBridge + "return;");
+// Add provider navigation only for unprivileged login windows; retain the
+// original security policy and listeners for every ordinary Notion tab.
+for (const [guard, url] of [
+  ["if(a&&w(t,i),a&&!S(i,e.frame||void 0)){", "i"],
+  ["if(o&&w(t,a),o&&!S(a,e.frame||void 0)){", "a"],
+]) {
+  if (code.split(guard).length !== 2)
+    throw Error("Unknown navigation guard layout; refusing to build.");
+  code = code.replace(guard,
+    guard.slice(0, -2) + `&&!require('../../page-lock/login-popups.cjs').isAllowedLoginNavigation(t,${url}.href)){`);
+}
 fs.writeFileSync(main, code);
 execFileSync("/usr/bin/ditto", [original, dest]);
 await asar.createPackageWithOptions(
