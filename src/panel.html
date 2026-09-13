@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self';"
+    />
+    <link rel="stylesheet" href="panel.css" />
+    <title>Notion 隐私锁</title>
+  </head>
+  <body>
+    <main>
+      <div class="badge">NOTION · 隐私锁</div>
+      <h1 id="heading">解锁页面</h1>
+      <p id="description"></p>
+      <form id="form">
+        <label for="password" id="password-label">隐私锁密码</label
+        ><input
+          id="password"
+          type="password"
+          autocomplete="off"
+          maxlength="256"
+          autofocus
+          required
+        />
+        <div id="confirm-row" hidden>
+          <label for="confirm">再次输入密码</label
+          ><input
+            id="confirm"
+            type="password"
+            autocomplete="off"
+            maxlength="256"
+          />
+        </div>
+        <div id="pages" hidden></div>
+        <p id="error" role="alert"></p>
+        <button id="submit" type="submit">解锁查看</button
+        ><button id="cancel" type="button" class="secondary">取消</button>
+      </form>
+      <p class="footnote">这是本机的独立密码，无需输入 Notion 账号密码。</p>
+    </main>
+    <script src="panel.js"></script>
+  </body>
+</html>

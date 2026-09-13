@@ -1,0 +1,89 @@
+:root {
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #20201f;
+  color: #eeedea;
+  font:
+    14px -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+}
+main {
+  padding: 38px 42px;
+}
+.badge {
+  color: #baa5ef;
+  font-size: 11px;
+  letter-spacing: 2px;
+  font-weight: 600;
+}
+h1 {
+  font-size: 27px;
+  font-weight: 650;
+  letter-spacing: -0.8px;
+  margin: 18px 0 10px;
+}
+p {
+  line-height: 1.65;
+  color: #aaa9a3;
+}
+label {
+  display: block;
+  font-size: 12px;
+  margin: 22px 0 8px;
+  color: #ceccc6;
+}
+input,
+select {
+  background: #292928;
+  border: 1px solid #484844;
+  padding: 12px;
+  width: 100%;
+  border-radius: 7px;
+  font: inherit;
+  color: #eee;
+}
+input:focus {
+  outline: 2px solid #baa5ef;
+  outline-offset: 2px;
+}
+button {
+  font: inherit;
+  font-weight: 550;
+  background: #ddd0fa;
+  color: #292133;
+  border: 0;
+  border-radius: 7px;
+  padding: 12px 20px;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.secondary {
+  background: transparent;
+  color: #bab7b0;
+}
+.footnote {
+  font-size: 11px;
+  margin-top: 25px;
+  color: #84827e;
+}
+#error {
+  color: #ffaaa4;
+  min-height: 22px;
+  font-size: 12px;
+}
+#pages {
+  max-height: 120px;
+  overflow: auto;
+}
+[hidden] {
+  display: none !important;
+}

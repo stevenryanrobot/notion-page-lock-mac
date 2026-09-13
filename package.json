@@ -1,0 +1,15 @@
+{
+  "name": "notion-page-lock-mac",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local viewing lock for Notion 7.33.0 on macOS",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "test:electron": "node scripts/test-electron.mjs",
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "@electron/asar": "^4.3.0"
+  }
+}
